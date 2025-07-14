@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Gun Shooting</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<link rel="stylesheet" href="style.css">
+	</head>
+	<body>
+		<div class="background"></div>
+    <div class="crosshair"></div>
+    
+    <div class="ui">
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="health-bar">
+            <div class="health-fill" id="health-fill" style="width: 100%;"></div>
+        </div>
+        <div class="ammo">Ammo: <span id="ammo">30</span></div>
+    </div>
+
+    <div class="level-indicator">
+        Wave: <span id="wave">1</span>
+    </div>
+
+    <div class="game-over" id="game-over">
+        <h2>GAME OVER</h2>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <button class="restart-btn" id="restart-btn">RESTART</button>
+    </div>
+
+    <div class="container"></div>
+
+    <!-- Penambahan Baru Control Mobile -->
+    <div class="mobile-controls">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
+        </div>
+
+        <div id="fire-button"></div>
+    </div>
+
+    <script src="script.js"></script>
+	</body>
+</html>
