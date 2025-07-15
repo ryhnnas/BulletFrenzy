@@ -751,31 +751,39 @@ $(document).ready(function() {
 
             // Joystick
             joystickBase.on('touchstart touchmove', (e) => {
-                e.preventDefault();
-                game.controls.joystick.active = true;
-                const touch = e.originalEvent.touches[0];
-                let deltaX = touch.clientX - baseCenterX;
-                let deltaY = touch.clientY - baseCenterY;
-                
-                let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                let angle = Math.atan2(deltaY, deltaX);
-                
-                game.controls.joystick.angle = angle;
-                game.controls.joystick.power = Math.min(1, distance / baseRadius);
+        e.preventDefault();
+        game.controls.joystick.active = true;
+        const touch = e.originalEvent.touches[0];
 
-                if (distance > baseRadius) {
-                    deltaX = Math.cos(angle) * baseRadius;
-                    deltaY = Math.sin(angle) * baseRadius;
-                }
-                
-                joystickKnob.css('transform', `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`);
-            });
+        // --- PINDAHKAN KALKULASI KE SINI ---
+        const baseRect = joystickBase[0].getBoundingClientRect();
+        const baseRadius = baseRect.width / 2;
+        const baseCenterX = baseRect.left + baseRadius;
+        const baseCenterY = baseRect.top + baseRadius;
+        // ------------------------------------
+
+        let deltaX = touch.clientX - baseCenterX;
+        let deltaY = touch.clientY - baseCenterY;
+        
+        let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        let angle = Math.atan2(deltaY, deltaX);
+        
+        game.controls.joystick.angle = angle;
+        game.controls.joystick.power = Math.min(1, distance / baseRadius);
+
+        if (distance > baseRadius) {
+            deltaX = Math.cos(angle) * baseRadius;
+            deltaY = Math.sin(angle) * baseRadius;
+        }
+        
+        joystickKnob.css('transform', `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`);
+    });
 
             joystickBase.on('touchend touchcancel', (e) => {
-                e.preventDefault();
-                game.controls.joystick.active = false;
-                joystickKnob.css('transform', `translate(-50%, -50%)`);
-            });
+        e.preventDefault();
+        game.controls.joystick.active = false;
+        joystickKnob.css('transform', `translate(-50%, -50%)`);
+    });
         }
         
         // Initial setup
