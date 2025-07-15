@@ -8,41 +8,111 @@
 		<link rel="stylesheet" href="style.css">
 	</head>
 	<body>
-		<div class="background"></div>
-    <div class="crosshair"></div>
-    
-    <div class="ui">
-        <div class="score">Score: <span id="score">0</span></div>
-        <div class="health-bar">
-            <div class="health-fill" id="health-fill" style="width: 100%;"></div>
+		<div class="main-menu" id="main-menu">
+			<h1>BULLET FRENZY</h1>
+			<div class="menu-options">
+				<div class="menu-item" id="tutorial-btn">
+					<h2>Tutorial</h2>
+					<p>Pelajari Cara Bermain</p>
+				</div>
+				<div class="menu-item main-play" id="play-btn">
+					<h2>Let's Play!</h2>
+					<p>Mulai Pertempuran</p>
+				</div>
+				<div class="menu-item" id="map-btn">
+					<h2>Peta</h2>
+					<p>Pilih Arena</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-screen" id="tutorial-screen" style="display: none;">
+            <div class="modal-content tutorial-content">
+                <h2>TUTORIAL</h2>
+                <p><strong>Gerak:</strong> Gunakan tombol <strong>W, A, S, D</strong> atau <strong>Tombol Panah</strong>.</p>
+                <p><strong>Menembak:</strong> Gunakan <strong>Klik Kiri Mouse</strong>.</p>
+                <div class="powerup-info">
+                    <p><strong>Power-up:</strong></p>
+                    <div class="powerup-item">
+                        <img src="/images/yellow-org.png" alt="Yellow Orb"> <span>: Menambah Ammo</span>
+                    </div>
+                    <div class="powerup-item">
+                        <img src="/images/green_orb.png" alt="Green Orb"> <span>: Menambah Kesehatan</span>
+                    </div>
+                    <div class="powerup-item">
+                        <img src="/images/red_orb.png" alt="Red Orb"> <span>: Meningkatkan Kecepatan Sementara</span>
+                    </div>
+                </div>
+                <p><strong>Tujuan:</strong> Bertahan hidup dari gelombang musuh!</p>
+                <button class="modal-close-btn">Tutup</button>
+            </div>
         </div>
-        <div class="ammo">Ammo: <span id="ammo">30</span></div>
-    </div>
 
-    <div class="level-indicator">
-        Wave: <span id="wave">1</span>
-    </div>
-
-    <div class="game-over" id="game-over">
-        <h2>GAME OVER</h2>
-        <p>Final Score: <span id="final-score">0</span></p>
-        <button class="restart-btn" id="restart-btn">RESTART</button>
-    </div>
-
-    <div class="container"></div>
-    <div id="rotate-device-overlay">
-        <p>🔄<br>Please rotate your device to play</p>
-    </div>
-
-    <!-- Penambahan Baru Control Mobile -->
-    <div class="mobile-controls">
-        <div id="joystick-base">
-            <div id="joystick-knob"></div>
+        <div class="modal-screen" id="map-screen" style="display: none;">
+            <div class="modal-content map-content">
+                <h2>PILIH PETA</h2>
+                <div class="map-choices">
+                    <div class="map-choice" data-map="synth-grid">
+                        <div class="map-preview"><img src="/images/synth_grid.png" alt="Synth Grid">
+                            <div class="checkmark">✔</div>
+                        </div>
+                        <span>Synth Grid</span>
+                    </div>
+                    <div class="map-choice" data-map="neon-forest">
+                        <div class="map-preview"><img src="/images/neon_forest.png" alt="Neon Forest">
+                            <div class="checkmark">✔</div>
+                        </div>
+                        <span>Neon Forest</span>
+                    </div>
+                    <div class="map-choice" data-map="volcanic-core">
+                        <div class="map-preview">
+                            <img src="/images/volcanic_core.png" alt="Volcanic Core"> 
+                            <div class="checkmark">✔</div>
+                        </div>
+                        <span>Volcanic Core</span>
+                    </div>
+                </div>
+                <button class="modal-close-btn">Tutup</button>
+            </div>
         </div>
 
-        <div id="fire-button"></div>
-    </div>
+        <button class="pause-btn" id="pause-btn" style="display: none;">❚❚</button>
 
-    <script src="script.js"></script>
+        <div class="modal-screen" id="pause-menu" style="display: none;">
+            <div class="modal-content">
+                <h2>PAUSED</h2>
+                <button id="resume-btn" class="restart-btn">Lanjutkan</button>
+                <button id="main-menu-btn" class="restart-btn" style="background: #555;">Kembali ke Menu</button>
+            </div>
+        </div>
+
+        <div class="wave-start-indicator" id="wave-start-indicator">
+            <h1 id="wave-start-text"></h1>
+        </div>
+
+        <div class="background"></div>
+        <div class="crosshair"></div>
+
+        <div class="ui">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="health-bar">
+                <div class="health-fill" id="health-fill" style="width: 100%;"></div>
+            </div>
+            <div class="ammo">Ammo: <span id="ammo">30</span></div>
+        </div>
+
+        <div class="level-indicator">
+            Wave: <span id="wave">1</span>
+        </div>
+
+        <div class="game-over" id="game-over">
+            <h2>GAME OVER</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button class="restart-btn" id="restart-btn">RESTART</button>
+        </div>
+
+        <div class="container"></div>
+        <script src="script.js"></script>
+
 	</body>
 </html>
