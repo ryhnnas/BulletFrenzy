@@ -1,18 +1,20 @@
 $(document).ready(function() {
-
-        // --- VARIABEL BARU & DETEKSI MOBILE ---
-        const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         
         // Game Variables
-        let gameState = {
-            score: 0,
-            health: 100,
-            ammo: 30,
-            wave: 1,
-            combo: 0,
-            isGameOver: false,
-            achievements: new Set()
-        };
+    let gameState = {
+        score: 0,
+        health: 100,
+        ammo: 30,
+        wave: 1,
+        combo: 0,
+        isGameOver: false,
+        isPaused: false, // <-- New state
+        achievements: new Set()
+    };
+
+    let gameConfig = {
+        currentMap: 'cyberpunk-alley' // <-- New config
+    };
 
         // Enhanced Game Settings
         const SETTINGS = {
@@ -33,8 +35,69 @@ $(document).ready(function() {
         let comboTimer;
 
         // ===================================
+        // NEW MENU & STATE MANAGEMENT
+        // ===================================
+        $('#play-btn').on('click', function() {
+            $('#main-menu').fadeOut(500, () => {
+                startGame();
+            });
+        });
+
+        $('#tutorial-btn').on('click', () => $('#tutorial-screen').fadeIn());
+        $('#map-btn').on('click', () => $('#map-screen').fadeIn());
+        $('.modal-close-btn').on('click', () => $('.modal-screen').fadeOut());
+
+        $('.map-choice').on('click', function() {
+        const selectedMap = $(this).data('map');
+        gameConfig.currentMap = selectedMap;
+
+        // Hapus kelas peta lama
+        $('body').removeClass('map-cyberpunk-alley map-neon-cityscape map-glacial-outpost');
+        
+        // Tambahkan kelas peta yang benar
+        $('body').addClass('map-' + selectedMap);
+        
+        // Atur tanda terpilih
+        $('.map-choice').removeClass('selected');
+        $(this).addClass('selected');
+    });
+
+        $('#pause-btn').on('click', function() {
+            if (gameState.isGameOver) return;
+            gameState.isPaused = true;
+            $('#pause-menu').fadeIn();
+        });
+
+        $('#resume-btn').on('click', function() {
+            gameState.isPaused = false;
+            $('#pause-menu').fadeOut();
+            // Penting: Memulai kembali loop game setelah jeda
+            requestAnimationFrame(game.loop.bind(game));
+        });
+
+        $('#main-menu-btn').on('click', function() {
+            // Cara termudah dan terbersih untuk kembali ke menu adalah me-reload halaman
+            location.reload();
+        });
+
+        // ===================================
         // UTILITY & EFFECT FUNCTIONS
         // ===================================
+
+        // --> Tambahkan fungsi baru ini
+        function showWaveStartAnimation(waveNumber, callback) {
+            const indicator = $('#wave-start-indicator');
+            $('#wave-start-text').text(`WAVE ${waveNumber} START`);
+            indicator.addClass('show');
+
+            // Tunggu animasi selesai sebelum memulai wave
+            setTimeout(() => {
+                indicator.removeClass('show');
+                if (callback) {
+                    callback();
+                }
+            }, 2500); // Sesuaikan dengan durasi animasi di CSS
+        }
 
         function createParticles() {
             setInterval(() => {
@@ -137,17 +200,15 @@ $(document).ready(function() {
         class Controls {
             constructor() {
                 this.keys = {};
-                // Desktop Controls
                 $(window).on('keydown', e => this.keys[e.key.toLowerCase()] = true);
                 $(window).on('keyup', e => this.keys[e.key.toLowerCase()] = false);
                 $(window).on('mousedown', () => this.keys['mousedown'] = true);
                 $(window).on('mouseup', () => this.keys['mousedown'] = false);
-
-                // Mobile Controls (akan di-setup di bawah)
-                this.joystick = { active: false, angle: 0, power: 0 };
             }
 
-            isDown(key) { return this.keys[key] || false; }
+            isDown(key) {
+                return this.keys[key] || false;
+            }
         }
         
         // ===================================
@@ -177,7 +238,6 @@ $(document).ready(function() {
                 this.speedBoostTimer = 0;
                 this.lastShot = 0;
                 this.shootCooldown = 150; // milliseconds
-                this.aimAngle = 0;
 
                 this.anim = {
                     counter: 0,
@@ -243,87 +303,47 @@ $(document).ready(function() {
                 $('#final-score').text(gameState.score);
                 $('#game-over').fadeIn();
                 $('.crosshair').hide();
+                $('#pause-btn').hide();
             }
             
             shoot() {
                 const now = Date.now();
-                // --- PERUBAHAN: Cek tombol 'fire' dari mobile juga ---
-                if ((this.controls.isDown('mousedown') || this.controls.isDown('fire')) && this.ammo > 0 && now - this.lastShot > this.shootCooldown) {
+                if (this.controls.isDown('mousedown') && this.ammo > 0 && now - this.lastShot > this.shootCooldown) {
                     this.lastShot = now;
                     this.ammo--;
                     gameState.ammo = this.ammo;
                     
-                    const armRotation = isMobile ? this.aimAngle : this.anim.rightArm.rot;
-                    const gunTipX = this.x + Math.cos(armRotation) * 25;
-                    const gunTipY = this.y + Math.sin(armRotation) * 25;
-
+                    const gunTipX = this.x + this.anim.rightArm.offsetX;
+                    const gunTipY = this.y + this.anim.rightArm.offsetY;
+                    
                     this.game.addBullet(new Bullet({
                         x: gunTipX,
                         y: gunTipY,
-                        angle: armRotation,
-                        parentContainer:
-                        this.game.container
+                        angle: this.anim.rightArm.rot,
+                        parentContainer: this.game.container
                     }));
-
+                    
                     createFlash(gunTipX, gunTipY);
                     createSmoke(gunTipX, gunTipY, 3);
+                    
                     this.anim.knockback = SETTINGS.SHOOT_KNOCKBACK;
-                    if (!isMobile) $('.crosshair').addClass('active');
+                    $('.crosshair').addClass('active');
                 } else {
-                    if (!isMobile) $('.crosshair').removeClass('active');
+                     $('.crosshair').removeClass('active');
                 }
             }
             
             move() {
-                // --- PERUBAHAN: Logika gerak dikontrol joystick di mobile ---
-                if (isMobile && this.controls.joystick.active) {
-                    this.xvel = Math.cos(this.controls.joystick.angle) * this.speed * this.controls.joystick.power;
-                    this.yvel = Math.sin(this.controls.joystick.angle) * this.speed * this.controls.joystick.power;
-                } else if (!isMobile) {
-                    this.xvel = 0;
-                    this.yvel = 0;
-                    if (this.controls.isDown('a') || this.controls.isDown('arrowleft')) this.xvel -= this.speed;
-                    if (this.controls.isDown('d') || this.controls.isDown('arrowright')) this.xvel += this.speed;
-                    if (this.controls.isDown('w') || this.controls.isDown('arrowup')) this.yvel -= this.speed;
-                    if (this.controls.isDown('s') || this.controls.isDown('arrowdown')) this.yvel += this.speed;
-                } else {
-                    this.xvel = 0;
-                    this.yvel = 0;
-                }
+                if (this.controls.isDown('a') || this.controls.isDown('arrowleft')) this.xvel -= this.speed * this.speedBoost;
+                if (this.controls.isDown('d') || this.controls.isDown('arrowright')) this.xvel += this.speed * this.speedBoost;
+                if (this.controls.isDown('w') || this.controls.isDown('arrowup')) this.yvel -= this.speed * this.speedBoost;
+                if (this.controls.isDown('s') || this.controls.isDown('arrowdown')) this.yvel += this.speed * this.speedBoost;
                 
-                this.x += this.xvel * this.speedBoost;
-                this.y += this.yvel * this.speedBoost;
-            }
-
-            // --- FUNGSI BARU: AUTO AIM ---
-            autoAim() {
-                let closestEnemy = null;
-                let minDistance = Infinity;
-
-                this.game.enemies.forEach(enemy => {
-                    const dx = enemy.x - this.x;
-                    const dy = enemy.y - this.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestEnemy = enemy;
-                    }
-                });
-
-                if (closestEnemy) {
-                    const dx = closestEnemy.x - this.x;
-                    const dy = closestEnemy.y - this.y;
-                    this.aimAngle = Math.atan2(dy, dx);
-                    this.anim.rightArm.rot = this.aimAngle;
-                    this.scaleX = (closestEnemy.x < this.x) ? -1 : 1;
-                } else {
-                    // Jika tidak ada musuh, arahkan ke depan sesuai gerakan
-                    if (this.controls.joystick.active) {
-                        this.aimAngle = this.controls.joystick.angle;
-                        this.anim.rightArm.rot = this.aimAngle;
-                    }
-                    this.scaleX = (Math.cos(this.aimAngle) < 0) ? -1 : 1;
-                }
+                this.xvel *= this.friction;
+                this.yvel *= this.friction;
+                
+                this.x += this.xvel;
+                this.y += this.yvel;
             }
             
             aim() {
@@ -333,7 +353,6 @@ $(document).ready(function() {
             }
             
             turn() {
-                if(isMobile) return;
                 this.scaleX = (mouse.x < this.x) ? -1 : 1;
             }
             
@@ -393,13 +412,7 @@ $(document).ready(function() {
             
             update() {
                 if (gameState.isGameOver) return;
-                
-                if (isMobile) {
-                    this.autoAim();
-                } else {
-                    this.aim();
-                }
-
+                this.aim();
                 this.turn();
                 this.move();
                 this.shoot();
@@ -585,8 +598,14 @@ $(document).ready(function() {
                 this.powerups = [];
                 this.enemiesToSpawn = 0;
                 this.lastSpawn = 0;
+                this.isSpawningWave = false;
                 
-                this.startWave();
+                // Mulai wave pertama dengan animasi
+                this.isSpawningWave = true;
+                showWaveStartAnimation(gameState.wave, () => {
+                    this.startWave();
+                    this.isSpawningWave = false;
+                });
             }
             
             startWave() {
@@ -659,7 +678,9 @@ $(document).ready(function() {
             }
 
             loop() {
-                if (gameState.isGameOver) return;
+                if (gameState.isGameOver || gameState.isPaused) {
+                    return; // Hentikan loop jika game over atau di-pause
+                }
                 
                 // Update objects
                 this.player.update();
@@ -683,9 +704,15 @@ $(document).ready(function() {
                 this.checkCollisions();
                 
                 // Check for next wave
-                if(this.enemiesToSpawn <= 0 && this.enemies.length === 0) {
+                if (this.enemiesToSpawn <= 0 && this.enemies.length === 0 && !this.isSpawningWave) {
+                    this.isSpawningWave = true;
                     gameState.wave++;
-                    this.startWave();
+                    
+                    // Panggil animasi, dan mulai wave baru setelah animasi selesai
+                    showWaveStartAnimation(gameState.wave, () => {
+                        this.startWave();
+                        this.isSpawningWave = false;
+                    });
                 }
                 
                 updateUI();
@@ -705,6 +732,7 @@ $(document).ready(function() {
                 wave: 1,
                 combo: 0,
                 isGameOver: false,
+                isPaused: false,
                 achievements: new Set()
             };
             
@@ -712,6 +740,7 @@ $(document).ready(function() {
             $('.container').empty();
             $('.game-over').hide();
             $('.crosshair').show();
+            $('#pause-btn').show();
             
             game = new Game();
 			game.loop();
@@ -725,72 +754,13 @@ $(document).ready(function() {
             mouse.y = e.clientY;
         });
 
-        $('#restart-btn').on('click', startGame);
-
-        // --- LOGIKA BARU: SETUP KONTROL MOBILE ---
-        function setupMobileControls() {
-            if (!isMobile) return;
-
-            const fireButton = $('#fire-button');
-            const joystickBase = $('#joystick-base');
-            const joystickKnob = $('#joystick-knob');
-            const baseRect = joystickBase[0].getBoundingClientRect();
-            const baseRadius = baseRect.width / 2;
-            const baseCenterX = baseRect.left + baseRadius;
-            const baseCenterY = baseRect.top + baseRadius;
-            
-            // Tombol Tembak
-            fireButton.on('touchstart', (e) => {
-                e.preventDefault();
-                game.controls.keys['fire'] = true;
-            });
-            fireButton.on('touchend touchcancel', (e) => {
-                e.preventDefault();
-                game.controls.keys['fire'] = false;
-            });
-
-            // Joystick
-            joystickBase.on('touchstart touchmove', (e) => {
-        e.preventDefault();
-        game.controls.joystick.active = true;
-        const touch = e.originalEvent.touches[0];
-
-        // --- PINDAHKAN KALKULASI KE SINI ---
-        const baseRect = joystickBase[0].getBoundingClientRect();
-        const baseRadius = baseRect.width / 2;
-        const baseCenterX = baseRect.left + baseRadius;
-        const baseCenterY = baseRect.top + baseRadius;
-        // ------------------------------------
-
-        let deltaX = touch.clientX - baseCenterX;
-        let deltaY = touch.clientY - baseCenterY;
-        
-        let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        let angle = Math.atan2(deltaY, deltaX);
-        
-        game.controls.joystick.angle = angle;
-        game.controls.joystick.power = Math.min(1, distance / baseRadius);
-
-        if (distance > baseRadius) {
-            deltaX = Math.cos(angle) * baseRadius;
-            deltaY = Math.sin(angle) * baseRadius;
-        }
-        
-        joystickKnob.css('transform', `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`);
-    });
-
-            joystickBase.on('touchend touchcancel', (e) => {
-        e.preventDefault();
-        game.controls.joystick.active = false;
-        joystickKnob.css('transform', `translate(-50%, -50%)`);
-    });
-        }
+        $('#restart-btn').on('click', function() {
+            startGame();
+        });
         
         // Initial setup
         createParticles();
-        startGame();
-        setupMobileControls();
-	});
+		});
     
     // Global restart function (accessible from HTML onclick)
     function restartGame() {
